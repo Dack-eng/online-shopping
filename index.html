@@ -203,6 +203,17 @@
             <div class="inventory-list" id="inventoryList"></div>
           </aside>
         </div>
+
+        <section class="orders-panel" aria-labelledby="ordersTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Orders</p>
+              <h2 id="ordersTitle">Хүлээн авсан захиалгууд</h2>
+            </div>
+            <button type="button" class="ghost-button" id="exportOrdersBtn">Захиалга татах</button>
+          </div>
+          <div class="orders-list" id="ordersList"></div>
+        </section>
       </section>
     </main>
   </div>
@@ -221,8 +232,29 @@
         <span>Нийт</span>
         <strong id="cartTotalPrice">₮0</strong>
       </div>
-      <button type="button" class="primary-button checkout-button" id="checkoutBtn">Захиалга илгээх</button>
-      <p class="cart-note">Жинхэнэ төлбөрийн систем биш. Дараагийн алхамд backend эсвэл payment холбож болно.</p>
+      <button type="button" class="primary-button checkout-button" id="checkoutBtn">Захиалга өгөх</button>
+      <form class="checkout-form hidden" id="checkoutForm">
+        <h3>Хүргэлтийн мэдээлэл</h3>
+        <label class="field">
+          <span>Таны нэр</span>
+          <input type="text" name="customerName" autocomplete="name" maxlength="80" required>
+        </label>
+        <label class="field">
+          <span>Утасны дугаар</span>
+          <input type="tel" name="phone" autocomplete="tel" inputmode="tel" maxlength="20" required>
+        </label>
+        <label class="field">
+          <span>Хүргэлтийн хаяг</span>
+          <textarea name="address" autocomplete="street-address" rows="2" maxlength="240" required></textarea>
+        </label>
+        <label class="field">
+          <span>Нэмэлт тайлбар (сонголтоор)</span>
+          <textarea name="note" rows="2" maxlength="300"></textarea>
+        </label>
+        <button type="submit" class="primary-button checkout-button">Захиалгаа баталгаажуулах</button>
+      </form>
+      <div class="order-confirmation hidden" id="orderConfirmation" role="status" aria-live="polite"></div>
+      <p class="cart-note">Захиалга энэ төхөөрөмжийн browser-т хадгалагдана. Өөр төхөөрөмжөөс хүлээн авахад backend холбох шаардлагатай.</p>
     </div>
   </aside>
 

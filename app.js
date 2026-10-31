@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   products: "nomad-market-products",
   cart: "nomad-market-cart",
+  orders: "nomad-market-orders",
 };
 
 const currency = new Intl.NumberFormat("mn-MN", {
@@ -20,6 +21,7 @@ const categoryPalette = {
 const state = {
   products: loadProducts(),
   cart: loadCart(),
+  orders: loadOrders(),
   editingId: null,
   uploadedImage: "",
   currentImage: "",
@@ -34,6 +36,7 @@ const refs = {
   productGrid: document.getElementById("productGrid"),
   featuredStrip: document.getElementById("featuredStrip"),
   inventoryList: document.getElementById("inventoryList"),
+  ordersList: document.getElementById("ordersList"),
   emptyState: document.getElementById("emptyState"),
   categoryFilter: document.getElementById("categoryFilter"),
   searchInput: document.getElementById("searchInput"),
@@ -54,12 +57,15 @@ const refs = {
   cancelEditBtn: document.getElementById("cancelEditBtn"),
   resetBtn: document.getElementById("resetBtn"),
   exportBtn: document.getElementById("exportBtn"),
+  exportOrdersBtn: document.getElementById("exportOrdersBtn"),
   importInput: document.getElementById("importInput"),
   cartDrawer: document.getElementById("cartDrawer"),
   cartItems: document.getElementById("cartItems"),
   cartToggle: document.getElementById("cartToggle"),
   closeCartBtn: document.getElementById("closeCartBtn"),
   checkoutBtn: document.getElementById("checkoutBtn"),
+  checkoutForm: document.getElementById("checkoutForm"),
+  orderConfirmation: document.getElementById("orderConfirmation"),
   cartCount: document.getElementById("cartCount"),
   cartTotalItems: document.getElementById("cartTotalItems"),
   cartTotalPrice: document.getElementById("cartTotalPrice"),
@@ -98,6 +104,7 @@ function bindEvents() {
   refs.cancelEditBtn.addEventListener("click", resetForm);
   refs.resetBtn.addEventListener("click", restoreDemoData);
   refs.exportBtn.addEventListener("click", exportProducts);
+  refs.exportOrdersBtn.addEventListener("click", exportOrders);
   refs.importInput.addEventListener("change", importProducts);
 
   refs.imageUrlInput.addEventListener("input", () => {
@@ -119,11 +126,13 @@ function bindEvents() {
   });
 
   refs.inventoryList.addEventListener("click", handleInventoryClick);
+  refs.ordersList.addEventListener("click", handleOrdersClick);
   refs.productGrid.addEventListener("click", handleProductGridClick);
   refs.cartItems.addEventListener("click", handleCartClick);
   refs.cartToggle.addEventListener("click", () => toggleCart(true));
   refs.closeCartBtn.addEventListener("click", () => toggleCart(false));
   refs.checkoutBtn.addEventListener("click", handleCheckout);
+  refs.checkoutForm.addEventListener("submit", handleOrderSubmit);
 
   document.addEventListener("click", (event) => {
     if (!refs.cartDrawer.classList.contains("open")) {
@@ -132,8 +141,9 @@ function bindEvents() {
 
     const clickedInsideCart = refs.cartDrawer.contains(event.target);
     const clickedToggle = refs.cartToggle.contains(event.target);
+    const clickedAddToCart = event.target.closest("button[data-action='add-to-cart']");
 
-    if (!clickedInsideCart && !clickedToggle) {
+    if (!clickedInsideCart && !clickedToggle && !clickedAddToCart) {
       toggleCart(false);
     }
   });
@@ -144,6 +154,7 @@ function render() {
   renderFeatured();
   renderProducts();
   renderInventory();
+  renderOrders();
   renderCart();
   renderStats();
 }
@@ -258,6 +269,48 @@ function renderInventory() {
       </div>
     </article>
   `).join("");
+}
+
+function renderOrders() {
+  const sorted = [...state.orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+
+  refs.ordersList.innerHTML = sorted.length
+    ? sorted.map((order) => `
+        <article class="order-card">
+          <div class="order-card-header">
+            <div>
+              <span class="order-number">Захиалга #${escapeHtml(order.id.slice(0, 8).toUpperCase())}</span>
+              <p class="inventory-meta">${escapeHtml(new Date(order.createdAt).toLocaleString("mn-MN"))}</p>
+            </div>
+            <span class="order-status ${order.status === "completed" ? "is-completed" : ""}">
+              ${order.status === "completed" ? "Дууссан" : "Шинэ"}
+            </span>
+          </div>
+          <div class="order-customer">
+            <strong>${escapeHtml(order.customer.name)}</strong>
+            <a href="tel:${escapeHtml(order.customer.phone)}">${escapeHtml(order.customer.phone)}</a>
+            <span>${escapeHtml(order.customer.address)}</span>
+            ${order.customer.note ? `<span class="subtle">${escapeHtml(order.customer.note)}</span>` : ""}
+          </div>
+          <ul class="order-lines">
+            ${order.items.map((item) => `
+              <li><span>${escapeHtml(item.name)} × ${item.quantity}</span><strong>${formatPrice(item.price * item.quantity)}</strong></li>
+            `).join("")}
+          </ul>
+          <div class="order-card-footer">
+            <strong>Нийт ${formatPrice(order.total)}</strong>
+            <button type="button" class="text-button" data-action="toggle-status" data-id="${escapeHtml(order.id)}">
+              ${order.status === "completed" ? "Шинэ болгох" : "Дууссан болгох"}
+            </button>
+          </div>
+        </article>
+      `).join("")
+    : `
+      <div class="empty-state">
+        <h3>Одоогоор захиалга алга</h3>
+        <p>Худалдан авагч захиалга өгөхөд энд харагдана.</p>
+      </div>
+    `;
 }
 
 function renderCart() {
@@ -379,6 +432,7 @@ function handleProductGridClick(event) {
     return;
   }
 
+  refs.orderConfirmation.classList.add("hidden");
   addToCart(button.dataset.id);
 }
 
@@ -504,7 +558,162 @@ function handleCheckout() {
     return;
   }
 
-  showToast("Энэ prototype дээр checkout demo хэлбэртэй байна. Дараа нь payment холбож болно.");
+  const unavailable = state.cart.some((entry) => {
+    const product = state.products.find((item) => item.id === entry.productId);
+    return !product || entry.quantity > product.stock;
+  });
+
+  if (unavailable) {
+    showToast("Сагсны барааны нөөц өөрчлөгдсөн байна. Тоо хэмжээгээ шалгана уу.");
+    renderCart();
+    return;
+  }
+
+  refs.checkoutBtn.classList.add("hidden");
+  refs.checkoutForm.classList.remove("hidden");
+  refs.checkoutForm.elements.customerName.focus();
+}
+
+function handleOrderSubmit(event) {
+  event.preventDefault();
+
+  if (!state.cart.length) {
+    showToast("Захиалахын өмнө сагсандаа бараа нэмнэ үү.");
+    return;
+  }
+
+  const formData = new FormData(refs.checkoutForm);
+  const customer = {
+    name: String(formData.get("customerName") || "").trim(),
+    phone: String(formData.get("phone") || "").trim(),
+    address: String(formData.get("address") || "").trim(),
+    note: String(formData.get("note") || "").trim(),
+  };
+
+  const phoneDigits = customer.phone.replace(/\D/g, "").length;
+  if (!customer.name || phoneDigits < 8 || phoneDigits > 15 || !customer.address) {
+    showToast("Нэр, зөв утасны дугаар, хүргэлтийн хаягаа оруулна уу.");
+    return;
+  }
+
+  const items = state.cart.map((entry) => {
+    const product = state.products.find((item) => item.id === entry.productId);
+    return product ? {
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: entry.quantity,
+    } : null;
+  });
+
+  if (items.some((item) => !item)) {
+    showToast("Сагсанд байхгүй болсон бараа байна. Сагсаа шинэчилнэ үү.");
+    renderCart();
+    return;
+  }
+
+  const orderItems = items;
+  const unavailable = state.cart.some((entry) => {
+    const product = state.products.find((item) => item.id === entry.productId);
+    return !product || entry.quantity > product.stock;
+  });
+
+  if (unavailable) {
+    showToast("Барааны нөөц хүрэлцэхгүй байна. Сагсны тоог шалгана уу.");
+    renderCart();
+    return;
+  }
+
+  const order = {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    status: "new",
+    customer,
+    items: orderItems,
+    total: orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+  };
+  const nextProducts = state.products.map((product) => {
+    const orderedQuantity = state.cart.find((entry) => entry.productId === product.id)?.quantity || 0;
+    return orderedQuantity ? { ...product, stock: product.stock - orderedQuantity } : product;
+  });
+
+  if (!persistOrderTransaction(order, nextProducts)) {
+    return;
+  }
+
+  refs.checkoutForm.reset();
+  refs.checkoutForm.classList.add("hidden");
+  refs.checkoutBtn.classList.remove("hidden");
+  refs.orderConfirmation.innerHTML = `
+    <strong>Захиалга амжилттай бүртгэгдлээ!</strong>
+    <span>Дугаар: #${escapeHtml(order.id.slice(0, 8).toUpperCase())}</span>
+  `;
+  refs.orderConfirmation.classList.remove("hidden");
+  render();
+  showToast("Захиалга амжилттай бүртгэгдлээ.");
+}
+
+function persistOrderTransaction(order, nextProducts) {
+  const updates = [
+    [STORAGE_KEYS.orders, JSON.stringify([order, ...state.orders])],
+    [STORAGE_KEYS.products, JSON.stringify(nextProducts)],
+    [STORAGE_KEYS.cart, JSON.stringify([])],
+  ];
+  let previousValues;
+
+  try {
+    previousValues = updates.map(([key]) => localStorage.getItem(key));
+    updates.forEach(([key, value]) => localStorage.setItem(key, value));
+  } catch (error) {
+    if (previousValues) {
+      previousValues.forEach((value, index) => {
+        try {
+          if (value === null) {
+            localStorage.removeItem(updates[index][0]);
+          } else {
+            localStorage.setItem(updates[index][0], value);
+          }
+        } catch (rollbackError) {
+          console.error("Could not roll back an incomplete order save.", rollbackError);
+        }
+      });
+    }
+
+    console.error("Could not save order to local storage.", error);
+    showToast("Захиалгыг хадгалж чадсангүй. Browser-ийн сул зайг шалгана уу.");
+    return false;
+  }
+
+  state.orders = [order, ...state.orders];
+  state.products = nextProducts;
+  state.cart = [];
+  return true;
+}
+
+function handleOrdersClick(event) {
+  const button = event.target.closest("button[data-action='toggle-status']");
+  if (!button) {
+    return;
+  }
+
+  const order = state.orders.find((item) => item.id === button.dataset.id);
+  if (!order) {
+    return;
+  }
+
+  const nextOrders = state.orders.map((item) => item.id === order.id
+    ? { ...item, status: item.status === "completed" ? "new" : "completed" }
+    : item);
+  try {
+    localStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(nextOrders));
+  } catch (error) {
+    console.error("Could not update order status in local storage.", error);
+    showToast("Захиалгын төлөвийг хадгалж чадсангүй.");
+    return;
+  }
+
+  state.orders = nextOrders;
+  renderOrders();
 }
 
 function restoreDemoData() {
@@ -533,6 +742,22 @@ function exportProducts() {
 
   URL.revokeObjectURL(url);
   showToast("Барааны JSON файл export хийгдлээ.");
+}
+
+function exportOrders() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    orders: state.orders,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = "nomad-market-orders.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+  showToast("Захиалгын JSON файл татагдлаа.");
 }
 
 async function importProducts(event) {
@@ -694,6 +919,38 @@ function loadCart() {
     const parsed = JSON.parse(saved);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
+    return [];
+  }
+}
+
+function loadOrders() {
+  const saved = localStorage.getItem(STORAGE_KEYS.orders);
+  if (!saved) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed.filter((order) => (
+      order
+      && typeof order.id === "string"
+      && typeof order.createdAt === "string"
+      && order.customer
+      && typeof order.customer.name === "string"
+      && typeof order.customer.phone === "string"
+      && typeof order.customer.address === "string"
+      && Array.isArray(order.items)
+      && order.items.every((item) => (
+        item
+        && typeof item.name === "string"
+        && Number.isFinite(item.price)
+        && Number.isInteger(item.quantity)
+        && item.quantity > 0
+      ))
+      && Number.isFinite(order.total)
+    )) : [];
+  } catch (error) {
+    console.error("Could not read saved orders from local storage.", error);
     return [];
   }
 }
