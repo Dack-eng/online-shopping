@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nomad Storefront</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="eyebrow">Digital shop builder</p>
+        <a href="#shop" class="brand">Nomad Market</a>
+      </div>
+      <nav class="top-nav">
+        <a href="#shop">Дэлгүүр</a>
+        <a href="#admin">Бараа удирдах</a>
+        <button class="cart-button" id="cartToggle" type="button">
+          Сагс
+          <span id="cartCount">0</span>
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="shop">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">Өөрийн бараагаа өөрөө нийтэл</p>
+          <h1>Онлайн дэлгүүрээ хурдан эхлүүлэх бэлэн загвар</h1>
+          <p class="hero-text">
+            Бараа нэмэх, зураг оруулах, үнэ засах, ангиллаар шүүх, сагсанд хийх бүх үндсэн боломжтой нэг нүүрэн дээр.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-link" href="#admin">Бараа нэмэх</a>
+            <a class="secondary-link" href="#catalog">Дэлгүүр харах</a>
+          </div>
+          <div class="hero-stats">
+            <article>
+              <strong id="totalProducts">0</strong>
+              <span>Нийт бараа</span>
+            </article>
+            <article>
+              <strong id="featuredProducts">0</strong>
+              <span>Онцлох бараа</span>
+            </article>
+            <article>
+              <strong>Local</strong>
+              <span>localStorage хадгалалт</span>
+            </article>
+          </div>
+        </div>
+        <div class="hero-card reveal delay-1">
+          <p class="card-kicker">Shop pulse</p>
+          <div class="pulse-grid">
+            <article>
+              <span>Идэвхтэй ангилал</span>
+              <strong id="categoryCount">0</strong>
+            </article>
+            <article>
+              <span>Сагсанд байгаа</span>
+              <strong id="cartTotalItems">0</strong>
+            </article>
+            <article>
+              <span>Нөөцтэй бараа</span>
+              <strong id="inStockCount">0</strong>
+            </article>
+          </div>
+          <div class="mini-banner">
+            <p>Зураг upload хийж, JSON backup export/import хийх боломжтой.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="featured-panel reveal delay-2">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Онцлох</p>
+            <h2>Таны онцлох бараанууд</h2>
+          </div>
+        </div>
+        <div class="featured-strip" id="featuredStrip"></div>
+      </section>
+
+      <section class="catalog-panel reveal" id="catalog">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Storefront</p>
+            <h2>Барааны хэсэг</h2>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <label class="field">
+            <span>Хайх</span>
+            <input id="searchInput" type="search" placeholder="Жишээ нь: цүнх, цамц, чихэвч">
+          </label>
+          <label class="field">
+            <span>Ангилал</span>
+            <select id="categoryFilter"></select>
+          </label>
+          <label class="field">
+            <span>Эрэмбэ</span>
+            <select id="sortSelect">
+              <option value="newest">Шинэ нэмэгдсэн</option>
+              <option value="price-asc">Үнэ өсөхөөр</option>
+              <option value="price-desc">Үнэ буурахаар</option>
+              <option value="stock-desc">Нөөц ихтэй</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="products-grid" id="productGrid"></div>
+        <div class="empty-state hidden" id="emptyState">
+          <h3>Илэрц олдсонгүй</h3>
+          <p>Шүүлтүүрээ өөрчлөөд дахин оролдоно уу.</p>
+        </div>
+      </section>
+
+      <section class="admin-panel reveal" id="admin">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h2>Бараа нэмэх, засах, нөөц удирдах</h2>
+          </div>
+          <div class="admin-actions">
+            <button type="button" class="ghost-button" id="exportBtn">JSON Export</button>
+            <label class="ghost-button import-button">
+              JSON Import
+              <input type="file" id="importInput" accept="application/json">
+            </label>
+          </div>
+        </div>
+
+        <div class="admin-grid">
+          <form class="product-form" id="productForm">
+            <div class="form-title-row">
+              <div>
+                <p class="eyebrow">Product form</p>
+                <h3 id="formTitle">Шинэ бараа нэмэх</h3>
+              </div>
+              <button type="button" class="text-button hidden" id="cancelEditBtn">Засварыг цуцлах</button>
+            </div>
+
+            <div class="form-grid">
+              <label class="field">
+                <span>Барааны нэр</span>
+                <input type="text" id="nameInput" name="name" required>
+              </label>
+              <label class="field">
+                <span>Ангилал</span>
+                <input type="text" id="categoryInput" name="category" placeholder="Жишээ нь: Хувцас" required>
+              </label>
+              <label class="field">
+                <span>Үнэ</span>
+                <input type="number" id="priceInput" name="price" min="0" step="0.01" required>
+              </label>
+              <label class="field">
+                <span>Хуучин үнэ</span>
+                <input type="number" id="comparePriceInput" name="comparePrice" min="0" step="0.01" placeholder="Сонголтоор">
+              </label>
+              <label class="field">
+                <span>Нөөц</span>
+                <input type="number" id="stockInput" name="stock" min="0" step="1" required>
+              </label>
+              <label class="field">
+                <span>Зургийн URL</span>
+                <input type="url" id="imageUrlInput" name="imageUrl" placeholder="https://...">
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Тайлбар</span>
+              <textarea id="descriptionInput" name="description" rows="4" placeholder="Барааны онцлог, материал, хүргэлтийн мэдээлэл..."></textarea>
+            </label>
+
+            <div class="upload-row">
+              <label class="field upload-field">
+                <span>Зураг upload</span>
+                <input type="file" id="imageFileInput" accept="image/*">
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="featuredInput" name="featured">
+                <span>Онцлох бараа болгох</span>
+              </label>
+            </div>
+
+            <div class="image-preview" id="imagePreview">
+              <span>Зураг preview энд харагдана.</span>
+            </div>
+
+            <button type="submit" class="primary-button" id="submitBtn">Бараа хадгалах</button>
+          </form>
+
+          <aside class="inventory-panel">
+            <div class="inventory-header">
+              <div>
+                <p class="eyebrow">Inventory</p>
+                <h3>Оруулсан бараанууд</h3>
+              </div>
+              <button type="button" class="ghost-button" id="resetBtn">Demo мэдээлэл сэргээх</button>
+            </div>
+            <div class="inventory-list" id="inventoryList"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+    <div class="cart-header">
+      <div>
+        <p class="eyebrow">Cart</p>
+        <h2>Таны сагс</h2>
+      </div>
+      <button type="button" class="ghost-icon-button" id="closeCartBtn" aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer">
+      <div class="cart-total-row">
+        <span>Нийт</span>
+        <strong id="cartTotalPrice">₮0</strong>
+      </div>
+      <button type="button" class="primary-button checkout-button" id="checkoutBtn">Захиалга илгээх</button>
+      <p class="cart-note">Жинхэнэ төлбөрийн систем биш. Дараагийн алхамд backend эсвэл payment холбож болно.</p>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
