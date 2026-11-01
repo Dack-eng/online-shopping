@@ -8,7 +8,9 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
 const CUSTOMER_STORE_PATH = process.env.CUSTOMER_STORE_PATH || path.join(ROOT, ".data", "customers.json");
 const DEMO_MODE = process.env.DEMO_MODE === "true";
-const DEMO_PASSWORD = "nomad-demo-2026";
+const DEMO_ADMIN_PHONE = "88665428";
+const DEMO_CUSTOMER_PHONE = "72445428";
+const DEMO_PASSWORD = "GaNq123@";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (DEMO_MODE ? DEMO_PASSWORD : "");
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const sessions = new Map();
@@ -29,7 +31,7 @@ if (DEMO_MODE && !["127.0.0.1", "::1", "localhost"].includes(HOST)) {
   process.exit(1);
 }
 
-if (ADMIN_PASSWORD.length < 12) {
+if (!DEMO_MODE && ADMIN_PASSWORD.length < 12) {
   console.error("Set ADMIN_PASSWORD to a value at least 12 characters long.");
   process.exit(1);
 }
@@ -42,6 +44,9 @@ if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
 let customerRecords;
 try {
   customerRecords = loadCustomers();
+  if (DEMO_MODE) {
+    customerRecords = addDemoCustomer(customerRecords);
+  }
 } catch (error) {
   console.error("Could not load customer accounts.", error);
   process.exit(1);
@@ -79,7 +84,12 @@ const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && url.pathname === "/api/customer/me") {
     const customer = getCustomerSession(request);
     sendJson(response, 200, customer
-      ? { authenticated: true, name: customer.name, email: customer.email }
+      ? {
+          authenticated: true,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone || "",
+        }
       : { authenticated: false });
     return;
   }
@@ -125,7 +135,7 @@ const server = http.createServer(async (request, response) => {
 server.listen(PORT, HOST, () => {
   console.log(`Nomad Market is available at http://localhost:${PORT}`);
   if (DEMO_MODE) {
-    console.warn(`Local demo mode is enabled. Admin password: ${DEMO_PASSWORD}`);
+    console.warn("Local demo accounts are enabled for localhost.");
   }
 });
 
@@ -157,7 +167,12 @@ async function handleLogin(request, response) {
   }
 
   const providedPassword = typeof payload.password === "string" ? payload.password : "";
-  if (!passwordsMatch(providedPassword, ADMIN_PASSWORD)) {
+  const providedPhone = typeof payload.phone === "string" ? payload.phone.trim() : "";
+  const validDemoAdmin = DEMO_MODE
+    && providedPhone === DEMO_ADMIN_PHONE
+    && passwordsMatch(providedPassword, DEMO_PASSWORD);
+  const validConfiguredAdmin = !DEMO_MODE && passwordsMatch(providedPassword, ADMIN_PASSWORD);
+  if (!validDemoAdmin && !validConfiguredAdmin) {
     const failures = attempt && attempt.windowStartedAt > now - 15 * 60 * 1000
       ? attempt.failures + 1
       : 1;
@@ -244,7 +259,12 @@ async function handleCustomerRegister(request, response) {
   customerRecords = nextCustomers;
   customerLoginAttempts.delete(clientKey);
   setCustomerSession(response, customer);
-  sendJson(response, 201, { ok: true, name: customer.name, email: customer.email });
+  sendJson(response, 201, {
+    ok: true,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone || "",
+  });
 }
 
 async function handleCustomerLogin(request, response) {
@@ -271,9 +291,11 @@ async function handleCustomerLogin(request, response) {
     return;
   }
 
-  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const identifier = typeof payload.identifier === "string"
+    ? payload.identifier.trim().toLowerCase()
+    : typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
   const password = typeof payload.password === "string" ? payload.password : "";
-  const customer = customerRecords.find((item) => item.email === email);
+  const customer = customerRecords.find((item) => item.email === identifier || item.phone === identifier);
   if (!customer || password.length > 128 || !verifyPassword(password, customer.passwordHash)) {
     recordFailedAttempt(customerLoginAttempts, clientKey);
     sendJson(response, 401, { error: "Invalid credentials" });
@@ -282,7 +304,12 @@ async function handleCustomerLogin(request, response) {
 
   customerLoginAttempts.delete(clientKey);
   setCustomerSession(response, customer);
-  sendJson(response, 200, { ok: true, name: customer.name, email: customer.email });
+  sendJson(response, 200, {
+    ok: true,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone || "",
+  });
 }
 
 function isSameOrigin(request) {
@@ -433,10 +460,28 @@ function loadCustomers() {
   }
   if (customers.some((customer) => !customer || typeof customer.id !== "string"
     || typeof customer.email !== "string" || typeof customer.name !== "string"
+    || (customer.phone !== undefined && typeof customer.phone !== "string")
     || typeof customer.passwordHash !== "string")) {
     throw new Error("Customer account store contains an invalid account record.");
   }
   return customers;
+}
+
+function addDemoCustomer(customers) {
+  if (customers.some((customer) => customer.phone === DEMO_CUSTOMER_PHONE)) {
+    return customers;
+  }
+
+  const nextCustomers = [...customers, {
+    id: crypto.randomUUID(),
+    name: "Demo customer",
+    email: "demo-customer@nomad.local",
+    phone: DEMO_CUSTOMER_PHONE,
+    passwordHash: hashPassword(DEMO_PASSWORD),
+    createdAt: new Date().toISOString(),
+  }];
+  saveCustomers(nextCustomers);
+  return nextCustomers;
 }
 
 function saveCustomers(customers) {

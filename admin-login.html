@@ -11,8 +11,12 @@
     <section class="product-form admin-login-panel">
       <p class="eyebrow">Admin</p>
       <h1>Нэвтрэх</h1>
-      <p class="subtle">Бараа болон захиалгыг удирдахын тулд админы нууц үгээ оруулна уу.</p>
+      <p class="subtle">Бараа болон захиалгыг удирдахын тулд админы нэвтрэх мэдээллээ оруулна уу.</p>
       <form id="adminLoginForm">
+        <label class="field">
+          <span>Утас / нэвтрэх нэр</span>
+          <input type="text" name="phone" autocomplete="username" inputmode="tel" maxlength="80">
+        </label>
         <label class="field">
           <span>Нууц үг</span>
           <input type="password" name="password" autocomplete="current-password" required autofocus>

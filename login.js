@@ -11,13 +11,16 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: new FormData(form).get("password") }),
+      body: JSON.stringify({
+        phone: new FormData(form).get("phone"),
+        password: new FormData(form).get("password"),
+      }),
     });
 
     if (!response.ok) {
       errorMessage.textContent = response.status === 429
         ? "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу."
-        : "Нууц үг буруу байна.";
+        : "Нэвтрэх нэр эсвэл нууц үг буруу байна.";
       return;
     }
 

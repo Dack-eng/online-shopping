@@ -51,7 +51,7 @@ async function submitAuth(event, action) {
           : action === "register" && response.status === 400
             ? "Мэдээллээ шалгана уу. Нууц үг 12-128 тэмдэгт байх ёстой."
             : action === "login" && response.status === 401
-              ? "И-мэйл эсвэл нууц үг буруу байна."
+              ? "И-мэйл/утас эсвэл нууц үг буруу байна."
               : "Үйлдэл амжилтгүй боллоо. Дахин оролдоно уу.";
       return;
     }
@@ -84,7 +84,7 @@ async function loadAccount() {
 function showSignedIn(customer) {
   accountForms.classList.add("hidden");
   accountStatus.classList.remove("hidden");
-  accountWelcome.textContent = `${customer.name} (${customer.email}) хаягаар нэвтэрсэн байна.`;
+  accountWelcome.textContent = `${customer.name} (${customer.phone || customer.email}) хаягаар нэвтэрсэн байна.`;
 }
 
 async function logout() {
