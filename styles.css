@@ -100,6 +100,17 @@ textarea:focus-visible {
   margin: 24px 0 18px;
 }
 
+.account-tabs {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.account-tabs [aria-selected="true"] {
+  color: #fff;
+  background: var(--brand-deep);
+}
+
 .login-error {
   min-height: 1.5em;
   color: #9a3d1c;

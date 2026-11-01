@@ -6,16 +6,20 @@ const path = require("node:path");
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
+const CUSTOMER_STORE_PATH = process.env.CUSTOMER_STORE_PATH || path.join(ROOT, ".data", "customers.json");
 const DEMO_MODE = process.env.DEMO_MODE === "true";
 const DEMO_PASSWORD = "nomad-demo-2026";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (DEMO_MODE ? DEMO_PASSWORD : "");
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const sessions = new Map();
 const loginAttempts = new Map();
+const customerSessions = new Map();
+const customerLoginAttempts = new Map();
 const publicFiles = new Map([
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
   ["/login.js", ["login.js", "text/javascript; charset=utf-8"]],
+  ["/account.js", ["account.js", "text/javascript; charset=utf-8"]],
 ]);
 const adminStart = "<!-- protected-admin-start -->";
 const adminEnd = "<!-- protected-admin-end -->";
@@ -32,6 +36,14 @@ if (ADMIN_PASSWORD.length < 12) {
 
 if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
   console.error("PORT must be a valid TCP port.");
+  process.exit(1);
+}
+
+let customerRecords;
+try {
+  customerRecords = loadCustomers();
+} catch (error) {
+  console.error("Could not load customer accounts.", error);
   process.exit(1);
 }
 
@@ -54,12 +66,45 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/customer/register") {
+    await handleCustomerRegister(request, response);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/customer/login") {
+    await handleCustomerLogin(request, response);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/customer/me") {
+    const customer = getCustomerSession(request);
+    sendJson(response, 200, customer
+      ? { authenticated: true, name: customer.name, email: customer.email }
+      : { authenticated: false });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/customer/logout") {
+    if (!isSameOrigin(request)) {
+      sendText(response, 403, "Forbidden");
+      return;
+    }
+    destroyCustomerSession(request, response);
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/admin") {
     if (!getSession(request)) {
       serveFile(response, "admin-login.html", "text/html; charset=utf-8");
       return;
     }
     serveFile(response, "index.html", "text/html; charset=utf-8");
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/account") {
+    serveFile(response, "account.html", "text/html; charset=utf-8");
     return;
   }
 
@@ -138,6 +183,108 @@ async function handleLogin(request, response) {
   sendJson(response, 200, { ok: true });
 }
 
+async function handleCustomerRegister(request, response) {
+  if (!isSameOrigin(request)) {
+    sendText(response, 403, "Forbidden");
+    return;
+  }
+
+  const clientKey = request.socket.remoteAddress || "unknown";
+  if (isRateLimited(customerLoginAttempts, clientKey, response)) {
+    return;
+  }
+
+  let payload;
+  try {
+    payload = await readJson(request);
+  } catch {
+    sendJson(response, 400, { error: "Invalid request" });
+    return;
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    sendJson(response, 400, { error: "Invalid request" });
+    return;
+  }
+
+  const name = typeof payload.name === "string" ? payload.name.trim() : "";
+  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const password = typeof payload.password === "string" ? payload.password : "";
+  if (name.length < 1 || name.length > 80 || email.length > 254
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    || password.length < 12 || password.length > 128) {
+    recordFailedAttempt(customerLoginAttempts, clientKey);
+    sendJson(response, 400, { error: "Invalid registration details" });
+    return;
+  }
+
+  if (customerRecords.some((customer) => customer.email === email)) {
+    recordFailedAttempt(customerLoginAttempts, clientKey);
+    sendJson(response, 409, { error: "Account already exists" });
+    return;
+  }
+
+  const customer = {
+    id: crypto.randomUUID(),
+    name,
+    email,
+    passwordHash: hashPassword(password),
+    createdAt: new Date().toISOString(),
+  };
+  const nextCustomers = [...customerRecords, customer];
+
+  try {
+    saveCustomers(nextCustomers);
+  } catch (error) {
+    console.error("Could not save customer account.", error);
+    sendJson(response, 500, { error: "Could not create account" });
+    return;
+  }
+
+  customerRecords = nextCustomers;
+  customerLoginAttempts.delete(clientKey);
+  setCustomerSession(response, customer);
+  sendJson(response, 201, { ok: true, name: customer.name, email: customer.email });
+}
+
+async function handleCustomerLogin(request, response) {
+  if (!isSameOrigin(request)) {
+    sendText(response, 403, "Forbidden");
+    return;
+  }
+
+  const clientKey = request.socket.remoteAddress || "unknown";
+  if (isRateLimited(customerLoginAttempts, clientKey, response)) {
+    return;
+  }
+
+  let payload;
+  try {
+    payload = await readJson(request);
+  } catch {
+    sendJson(response, 400, { error: "Invalid request" });
+    return;
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    sendJson(response, 400, { error: "Invalid request" });
+    return;
+  }
+
+  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const password = typeof payload.password === "string" ? payload.password : "";
+  const customer = customerRecords.find((item) => item.email === email);
+  if (!customer || password.length > 128 || !verifyPassword(password, customer.passwordHash)) {
+    recordFailedAttempt(customerLoginAttempts, clientKey);
+    sendJson(response, 401, { error: "Invalid credentials" });
+    return;
+  }
+
+  customerLoginAttempts.delete(clientKey);
+  setCustomerSession(response, customer);
+  sendJson(response, 200, { ok: true, name: customer.name, email: customer.email });
+}
+
 function isSameOrigin(request) {
   const origin = request.headers.origin;
   if (!origin) {
@@ -151,10 +298,61 @@ function isSameOrigin(request) {
   }
 }
 
+function isRateLimited(attempts, key, response) {
+  const attempt = attempts.get(key);
+  if (!attempt || attempt.blockedUntil <= Date.now()) {
+    return false;
+  }
+  sendJson(response, 429, { error: "Too many attempts" });
+  return true;
+}
+
+function recordFailedAttempt(attempts, key) {
+  const now = Date.now();
+  const attempt = attempts.get(key);
+  const inWindow = attempt && attempt.windowStartedAt > now - 15 * 60 * 1000;
+  const failures = inWindow ? attempt.failures + 1 : 1;
+  attempts.set(key, {
+    failures,
+    windowStartedAt: inWindow ? attempt.windowStartedAt : now,
+    blockedUntil: failures >= 5 ? now + 15 * 60 * 1000 : 0,
+  });
+}
+
 function passwordsMatch(provided, expected) {
   const providedHash = crypto.createHash("sha256").update(provided).digest();
   const expectedHash = crypto.createHash("sha256").update(expected).digest();
   return crypto.timingSafeEqual(providedHash, expectedHash);
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync(password, salt, 64);
+  return `${salt.toString("base64url")}:${hash.toString("base64url")}`;
+}
+
+function verifyPassword(password, encodedHash) {
+  if (typeof encodedHash !== "string" || typeof password !== "string") {
+    return false;
+  }
+
+  const [saltValue, hashValue, extra] = encodedHash.split(":");
+  if (!saltValue || !hashValue || extra) {
+    return false;
+  }
+
+  try {
+    const salt = Buffer.from(saltValue, "base64url");
+    const expectedHash = Buffer.from(hashValue, "base64url");
+    if (salt.length !== 16 || expectedHash.length !== 64) {
+      return false;
+    }
+    const actualHash = crypto.scryptSync(password, salt, expectedHash.length);
+    return crypto.timingSafeEqual(actualHash, expectedHash);
+  } catch (error) {
+    console.error("Could not verify customer password hash.", error);
+    return false;
+  }
 }
 
 function getSession(request) {
@@ -172,6 +370,81 @@ function getSession(request) {
     return false;
   }
   return true;
+}
+
+function setCustomerSession(response, customer) {
+  const sessionId = crypto.randomBytes(32).toString("base64url");
+  customerSessions.set(sessionId, {
+    expiresAt: Date.now() + SESSION_TTL_MS,
+    customerId: customer.id,
+  });
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  response.setHeader(
+    "Set-Cookie",
+    `nomad_customer_session=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_MS / 1000}${secure}`,
+  );
+}
+
+function getCustomerSession(request) {
+  const cookie = request.headers.cookie || "";
+  const sessionId = cookie.split(";").map((part) => part.trim())
+    .find((part) => part.startsWith("nomad_customer_session="))
+    ?.slice("nomad_customer_session=".length);
+  if (!sessionId) {
+    return null;
+  }
+
+  const session = customerSessions.get(sessionId);
+  if (!session || session.expiresAt <= Date.now()) {
+    customerSessions.delete(sessionId);
+    return null;
+  }
+
+  const customer = customerRecords.find((item) => item.id === session.customerId);
+  if (!customer) {
+    customerSessions.delete(sessionId);
+    return null;
+  }
+  return customer;
+}
+
+function destroyCustomerSession(request, response) {
+  const cookie = request.headers.cookie || "";
+  const sessionId = cookie.split(";").map((part) => part.trim())
+    .find((part) => part.startsWith("nomad_customer_session="))
+    ?.slice("nomad_customer_session=".length);
+  if (sessionId) {
+    customerSessions.delete(sessionId);
+  }
+  response.setHeader(
+    "Set-Cookie",
+    "nomad_customer_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0",
+  );
+}
+
+function loadCustomers() {
+  if (!fs.existsSync(CUSTOMER_STORE_PATH)) {
+    return [];
+  }
+
+  const customers = JSON.parse(fs.readFileSync(CUSTOMER_STORE_PATH, "utf8"));
+  if (!Array.isArray(customers)) {
+    throw new Error("Customer account store must contain a JSON array.");
+  }
+  if (customers.some((customer) => !customer || typeof customer.id !== "string"
+    || typeof customer.email !== "string" || typeof customer.name !== "string"
+    || typeof customer.passwordHash !== "string")) {
+    throw new Error("Customer account store contains an invalid account record.");
+  }
+  return customers;
+}
+
+function saveCustomers(customers) {
+  const directory = path.dirname(CUSTOMER_STORE_PATH);
+  fs.mkdirSync(directory, { recursive: true });
+  const temporaryPath = `${CUSTOMER_STORE_PATH}.${process.pid}.tmp`;
+  fs.writeFileSync(temporaryPath, JSON.stringify(customers, null, 2), { mode: 0o600 });
+  fs.renameSync(temporaryPath, CUSTOMER_STORE_PATH);
 }
 
 function destroySession(request, response) {

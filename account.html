@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Хэрэглэгчийн бүртгэл · Nomad Market</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="product-form admin-login-panel">
+      <p class="eyebrow">Nomad Market</p>
+      <h1>Хэрэглэгчийн бүртгэл</h1>
+      <div id="accountStatus" class="hidden" aria-live="polite">
+        <p id="accountWelcome"></p>
+        <button type="button" class="ghost-button" id="customerLogout">Гарах</button>
+      </div>
+      <div id="accountForms">
+        <div class="account-tabs" role="tablist" aria-label="Нэвтрэх эсвэл бүртгүүлэх">
+          <button type="button" class="ghost-button" id="showLogin" role="tab" aria-selected="true">Нэвтрэх</button>
+          <button type="button" class="ghost-button" id="showRegister" role="tab" aria-selected="false">Бүртгүүлэх</button>
+        </div>
+        <form id="customerLoginForm">
+          <label class="field">
+            <span>И-мэйл</span>
+            <input type="email" name="email" autocomplete="email" maxlength="254" required>
+          </label>
+          <label class="field">
+            <span>Нууц үг</span>
+            <input type="password" name="password" autocomplete="current-password" maxlength="128" required>
+          </label>
+          <p class="login-error" id="loginError" role="alert" aria-live="polite"></p>
+          <button type="submit" class="primary-button">Нэвтрэх</button>
+        </form>
+        <form id="customerRegisterForm" class="hidden">
+          <label class="field">
+            <span>Нэр</span>
+            <input type="text" name="name" autocomplete="name" maxlength="80" required>
+          </label>
+          <label class="field">
+            <span>И-мэйл</span>
+            <input type="email" name="email" autocomplete="email" maxlength="254" required>
+          </label>
+          <label class="field">
+            <span>Нууц үг (12-128 тэмдэгт)</span>
+            <input type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+          </label>
+          <p class="login-error" id="registerError" role="alert" aria-live="polite"></p>
+          <button type="submit" class="primary-button">Бүртгэл үүсгэх</button>
+        </form>
+      </div>
+      <p><a class="secondary-link" href="/">Дэлгүүр рүү буцах</a></p>
+    </section>
+  </main>
+  <script src="/account.js" defer></script>
+</body>
+</html>
