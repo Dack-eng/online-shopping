@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin нэвтрэх · Nomad Market</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="product-form admin-login-panel">
+      <p class="eyebrow">Admin</p>
+      <h1>Нэвтрэх</h1>
+      <p class="subtle">Бараа болон захиалгыг удирдахын тулд админы нууц үгээ оруулна уу.</p>
+      <form id="adminLoginForm">
+        <label class="field">
+          <span>Нууц үг</span>
+          <input type="password" name="password" autocomplete="current-password" required autofocus>
+        </label>
+        <p class="login-error" id="loginError" role="alert" aria-live="polite"></p>
+        <button type="submit" class="primary-button">Нэвтрэх</button>
+      </form>
+      <p><a class="secondary-link" href="/">Дэлгүүр рүү буцах</a></p>
+    </section>
+  </main>
+  <script src="/login.js" defer></script>
+</body>
+</html>

@@ -100,33 +100,37 @@ function bindEvents() {
     renderProducts();
   });
 
-  refs.productForm.addEventListener("submit", handleSubmit);
-  refs.cancelEditBtn.addEventListener("click", resetForm);
-  refs.resetBtn.addEventListener("click", restoreDemoData);
-  refs.exportBtn.addEventListener("click", exportProducts);
-  refs.exportOrdersBtn.addEventListener("click", exportOrders);
-  refs.importInput.addEventListener("change", importProducts);
+  if (refs.productForm) {
+    refs.productForm.addEventListener("submit", handleSubmit);
+    refs.cancelEditBtn.addEventListener("click", resetForm);
+    refs.resetBtn.addEventListener("click", restoreDemoData);
+    refs.exportBtn.addEventListener("click", exportProducts);
+    refs.exportOrdersBtn.addEventListener("click", exportOrders);
+    refs.importInput.addEventListener("change", importProducts);
+    refs.logoutBtn.addEventListener("click", logoutAdmin);
 
-  refs.imageUrlInput.addEventListener("input", () => {
-    if (!state.uploadedImage) {
+    refs.imageUrlInput.addEventListener("input", () => {
+      if (!state.uploadedImage) {
+        updatePreview();
+      }
+    });
+
+    refs.imageFileInput.addEventListener("change", async (event) => {
+      const [file] = event.target.files || [];
+      if (!file) {
+        state.uploadedImage = "";
+        updatePreview();
+        return;
+      }
+
+      state.uploadedImage = await readFileAsDataUrl(file);
       updatePreview();
-    }
-  });
+    });
 
-  refs.imageFileInput.addEventListener("change", async (event) => {
-    const [file] = event.target.files || [];
-    if (!file) {
-      state.uploadedImage = "";
-      updatePreview();
-      return;
-    }
+    refs.inventoryList.addEventListener("click", handleInventoryClick);
+    refs.ordersList.addEventListener("click", handleOrdersClick);
+  }
 
-    state.uploadedImage = await readFileAsDataUrl(file);
-    updatePreview();
-  });
-
-  refs.inventoryList.addEventListener("click", handleInventoryClick);
-  refs.ordersList.addEventListener("click", handleOrdersClick);
   refs.productGrid.addEventListener("click", handleProductGridClick);
   refs.cartItems.addEventListener("click", handleCartClick);
   refs.cartToggle.addEventListener("click", () => toggleCart(true));
@@ -253,6 +257,10 @@ function renderProducts() {
 }
 
 function renderInventory() {
+  if (!refs.inventoryList) {
+    return;
+  }
+
   const sorted = [...state.products].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 
   refs.inventoryList.innerHTML = sorted.map((product) => `
@@ -272,6 +280,10 @@ function renderInventory() {
 }
 
 function renderOrders() {
+  if (!refs.ordersList) {
+    return;
+  }
+
   const sorted = [...state.orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 
   refs.ordersList.innerHTML = sorted.length
@@ -432,7 +444,7 @@ function handleProductGridClick(event) {
     return;
   }
 
-  refs.orderConfirmation.classList.add("hidden");
+  refs.orderConfirmation?.classList.add("hidden");
   addToCart(button.dataset.id);
 }
 
@@ -550,6 +562,20 @@ function resetForm() {
 function toggleCart(open) {
   refs.cartDrawer.classList.toggle("open", open);
   refs.cartDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+}
+
+async function logoutAdmin() {
+  try {
+    const response = await fetch("/api/admin/logout", { method: "POST" });
+    if (!response.ok) {
+      throw new Error(`Logout failed with status ${response.status}`);
+    }
+
+    window.location.replace("/admin");
+  } catch (error) {
+    console.error("Could not end the admin session.", error);
+    showToast("Гарах үйлдэл амжилтгүй боллоо. Дахин оролдоно уу.");
+  }
 }
 
 function handleCheckout() {
@@ -858,6 +884,10 @@ function getStockClass(stock) {
 }
 
 function updatePreview(image) {
+  if (!refs.imagePreview) {
+    return;
+  }
+
   const src = image || state.uploadedImage || refs.imageUrlInput.value.trim() || state.currentImage;
   refs.imagePreview.innerHTML = src
     ? `<img src="${escapeHtml(src)}" alt="Product preview">`
