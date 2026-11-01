@@ -6,7 +6,9 @@ const path = require("node:path");
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const DEMO_MODE = process.env.DEMO_MODE === "true";
+const DEMO_PASSWORD = "nomad-demo-2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (DEMO_MODE ? DEMO_PASSWORD : "");
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const sessions = new Map();
 const loginAttempts = new Map();
@@ -17,6 +19,11 @@ const publicFiles = new Map([
 ]);
 const adminStart = "<!-- protected-admin-start -->";
 const adminEnd = "<!-- protected-admin-end -->";
+
+if (DEMO_MODE && !["127.0.0.1", "::1", "localhost"].includes(HOST)) {
+  console.error("DEMO_MODE can only run on localhost. Remove DEMO_MODE or use a secure ADMIN_PASSWORD.");
+  process.exit(1);
+}
 
 if (ADMIN_PASSWORD.length < 12) {
   console.error("Set ADMIN_PASSWORD to a value at least 12 characters long.");
@@ -72,6 +79,9 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`Nomad Market is available at http://localhost:${PORT}`);
+  if (DEMO_MODE) {
+    console.warn(`Local demo mode is enabled. Admin password: ${DEMO_PASSWORD}`);
+  }
 });
 
 async function handleLogin(request, response) {
