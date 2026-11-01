@@ -33,6 +33,7 @@ const state = {
 };
 
 const refs = {
+  adminPanel: document.getElementById("admin"),
   productGrid: document.getElementById("productGrid"),
   featuredStrip: document.getElementById("featuredStrip"),
   inventoryList: document.getElementById("inventoryList"),
@@ -55,6 +56,7 @@ const refs = {
   formTitle: document.getElementById("formTitle"),
   submitBtn: document.getElementById("submitBtn"),
   cancelEditBtn: document.getElementById("cancelEditBtn"),
+  logoutBtn: document.getElementById("logoutBtn"),
   resetBtn: document.getElementById("resetBtn"),
   exportBtn: document.getElementById("exportBtn"),
   exportOrdersBtn: document.getElementById("exportOrdersBtn"),
@@ -79,6 +81,13 @@ const refs = {
 init();
 
 function init() {
+  const isServerAdminPage = window.location.pathname.replace(/\/+$/, "") === "/admin";
+  const hasDemoAdminSession = new URLSearchParams(window.location.search).get("demoAdmin") === "1"
+    && sessionStorage.getItem("nomad-demo-admin") === "true";
+  if (isServerAdminPage || hasDemoAdminSession) {
+    refs.adminPanel?.classList.add("admin-visible");
+  }
+
   bindEvents();
   render();
   updatePreview();
@@ -573,6 +582,12 @@ async function logoutAdmin() {
 
     window.location.replace("/admin");
   } catch (error) {
+    if (sessionStorage.getItem("nomad-demo-admin") === "true") {
+      sessionStorage.removeItem("nomad-demo-admin");
+      window.location.replace("admin-login.html");
+      return;
+    }
+
     console.error("Could not end the admin session.", error);
     showToast("Гарах үйлдэл амжилтгүй боллоо. Дахин оролдоно уу.");
   }

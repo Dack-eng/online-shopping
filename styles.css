@@ -85,6 +85,16 @@ textarea:focus-visible {
   display: none !important;
 }
 
+.admin-panel:not(.admin-visible) {
+  display: none !important;
+}
+
+.demo-login-note {
+  margin: 16px 0 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .admin-login-panel {
   width: min(100%, 520px);
   margin: 10vh auto;

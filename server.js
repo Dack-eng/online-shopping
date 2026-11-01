@@ -109,12 +109,17 @@ const server = http.createServer(async (request, response) => {
       serveFile(response, "admin-login.html", "text/html; charset=utf-8");
       return;
     }
-    serveFile(response, "index.html", "text/html; charset=utf-8");
+    serveAdminPage(response);
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/account") {
+  if (request.method === "GET" && ["/account", "/account.html"].includes(url.pathname)) {
     serveFile(response, "account.html", "text/html; charset=utf-8");
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/admin-login.html") {
+    serveFile(response, "admin-login.html", "text/html; charset=utf-8");
     return;
   }
 
@@ -527,6 +532,23 @@ function servePublicStorefront(response) {
 
   html = html.slice(0, start) + html.slice(end + adminEnd.length);
   html = html.replace(/<a\b(?=[^>]*href="\/admin")[^>]*>[\s\S]*?<\/a>/gi, "");
+  send(response, 200, "text/html; charset=utf-8", html);
+}
+
+function serveAdminPage(response) {
+  const filePath = path.join(ROOT, "index.html");
+  let html;
+  try {
+    html = fs.readFileSync(filePath, "utf8");
+  } catch (error) {
+    console.error("Could not read the admin page.", error);
+    sendText(response, 500, "Could not serve requested page");
+    return;
+  }
+  html = html.replace(
+    '<section class="admin-panel reveal" id="admin">',
+    '<section class="admin-panel admin-visible reveal" id="admin">',
+  );
   send(response, 200, "text/html; charset=utf-8", html);
 }
 
