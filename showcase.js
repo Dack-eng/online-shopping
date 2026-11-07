@@ -1,4 +1,4 @@
-import * as THREE from "/vendor/three.module.js";
+import * as THREE from "three";
 
 const canvas = document.getElementById("showcaseScene");
 const hero = document.getElementById("shop");
@@ -81,14 +81,22 @@ if (canvas && hero) {
       screen: material(0x101715, 0.18, 0.24),
     };
 
+    const glowCanvas = document.createElement("canvas");
+    glowCanvas.width = 512;
+    glowCanvas.height = 384;
+    const glowContext = glowCanvas.getContext("2d");
+    const glowGradient = glowContext.createRadialGradient(256, 184, 20, 256, 184, 220);
+    glowGradient.addColorStop(0, "rgba(183, 162, 119, 0.24)");
+    glowGradient.addColorStop(0.52, "rgba(104, 132, 91, 0.14)");
+    glowGradient.addColorStop(1, "rgba(20, 29, 22, 0)");
+    glowContext.fillStyle = glowGradient;
+    glowContext.fillRect(0, 0, glowCanvas.width, glowCanvas.height);
+
+    const glowTexture = new THREE.CanvasTexture(glowCanvas);
+    glowTexture.colorSpace = THREE.SRGBColorSpace;
     const backdrop = new THREE.Mesh(
       new THREE.PlaneGeometry(5.5, 4.15),
-      new THREE.MeshBasicMaterial({
-        color: 0x1e2a21,
-        transparent: true,
-        opacity: 0.72,
-        depthWrite: false,
-      }),
+      new THREE.MeshBasicMaterial({ map: glowTexture, transparent: true, depthWrite: false }),
     );
     backdrop.position.set(0, 0.28, -1.72);
     stage.add(backdrop);
