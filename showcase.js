@@ -152,13 +152,14 @@ if (canvas && hero) {
       const bounds = canvas.getBoundingClientRect();
       const width = Math.max(1, bounds.width);
       const height = Math.max(1, bounds.height);
-      const compact = width < 720;
+      const mobileStage = width < 720 && height < 360;
+      const narrowStage = width / height < 1;
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       lookTargetY = 0;
       lookTargetX = 0;
-      camera.position.set(lookTargetX, 1.25, compact ? 7.2 : 7.5);
+      camera.position.set(lookTargetX, 1.25, mobileStage || narrowStage ? 7.2 : 8.5);
       camera.lookAt(lookTargetX, lookTargetY, 0);
 
       const mobileLayout = [
@@ -167,17 +168,24 @@ if (canvas && hero) {
         [0.75, -0.25, 0.2],
         [2.3, 0.42, -0.45],
       ];
+      const narrowLayout = [
+        [0, 1.1, 0.1],
+        [0, 0.3, -0.5],
+        [0, -0.5, 0.2],
+        [0, -1.3, -0.45],
+      ];
       const desktopLayout = [
-        [-5.4, 0.1, 0],
-        [-1.8, 0.46, -0.55],
-        [1.8, -0.18, 0.25],
-        [5.4, 0.42, -0.35],
+        [-2.8, 0.1, 0],
+        [-0.95, 0.46, -0.55],
+        [0.95, -0.18, 0.25],
+        [2.8, 0.42, -0.35],
       ];
 
       products.forEach((product, index) => {
-        product.group.visible = !compact || index < mobileLayout.length;
-        product.group.scale.setScalar(compact ? 1.22 : 1);
-        const [x, y, z] = compact ? mobileLayout[index] || [0, 0, 0] : desktopLayout[index];
+        product.group.visible = true;
+        product.group.scale.setScalar(mobileStage ? 1.22 : narrowStage ? 0.82 : 1);
+        const layout = mobileStage ? mobileLayout : narrowStage ? narrowLayout : desktopLayout;
+        const [x, y, z] = layout[index];
         product.x = x;
         product.y = y;
         product.z = z;
