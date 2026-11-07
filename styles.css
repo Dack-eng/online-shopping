@@ -1254,7 +1254,8 @@ textarea:focus-visible {
 }
 
 .brand {
-  font-family: "Bahnschrift", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -1370,7 +1371,8 @@ textarea:focus-visible {
 .product-copy h3,
 .checkout-form h3,
 .admin-login-panel h1 {
-  font-family: "Bahnschrift", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -1473,7 +1475,7 @@ textarea:focus-visible {
 }
 
 .card-kicker {
-  font-family: "Bahnschrift", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 .mini-banner {

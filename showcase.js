@@ -35,21 +35,21 @@ if (canvas && hero) {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    scene.add(new THREE.HemisphereLight(0xdce9dc, 0x18211d, 2.2));
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(new THREE.HemisphereLight(0xe9e1d0, 0x18211d, 2.1));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.72));
 
-    const keyLight = new THREE.DirectionalLight(0xffdfc4, 4.2);
-    keyLight.position.set(-4, 7, 8);
+    const keyLight = new THREE.DirectionalLight(0xf4dfc0, 3.8);
+    keyLight.position.set(-4, 6, 7);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(1024, 1024);
     scene.add(keyLight);
 
-    const greenLight = new THREE.PointLight(0x72c49b, 35, 18);
-    greenLight.position.set(5, 2, -2);
+    const greenLight = new THREE.PointLight(0x94a27b, 30, 16);
+    greenLight.position.set(4, 2, -1.5);
     scene.add(greenLight);
 
-    const warmLight = new THREE.PointLight(0xf17e50, 28, 16);
-    warmLight.position.set(-6, 1, 1);
+    const warmLight = new THREE.PointLight(0xc8855f, 24, 14);
+    warmLight.position.set(-5, 1, 1);
     scene.add(warmLight);
 
     const stage = new THREE.Group();
@@ -72,14 +72,45 @@ if (canvas && hero) {
     stage.add(stageRing);
 
     const productMats = {
-      coral: material(0xd77750, 0.34, 0.08),
-      cream: material(0xe4dbc7, 0.4, 0.04),
-      forest: material(0x497b61, 0.36, 0.12),
-      dark: material(0x202a28, 0.32, 0.36),
-      gold: material(0xd3a66b, 0.28, 0.62),
-      label: material(0xf2eee3, 0.58, 0),
+      coral: material(0x9d5a45, 0.38, 0.1),
+      cream: material(0xe7dfce, 0.44, 0.03),
+      forest: material(0x536d58, 0.4, 0.1),
+      dark: material(0x202821, 0.36, 0.3),
+      gold: material(0xc2a06d, 0.32, 0.58),
+      label: material(0xf1eadb, 0.62, 0),
       screen: material(0x101715, 0.18, 0.24),
     };
+
+    const backdrop = new THREE.Mesh(
+      new THREE.PlaneGeometry(5.5, 4.15),
+      new THREE.MeshBasicMaterial({
+        color: 0x1e2a21,
+        transparent: true,
+        opacity: 0.72,
+        depthWrite: false,
+      }),
+    );
+    backdrop.position.set(0, 0.28, -1.72);
+    stage.add(backdrop);
+
+    const archFrame = new THREE.Mesh(
+      new THREE.TorusGeometry(2.18, 0.065, 14, 96, Math.PI),
+      productMats.gold,
+    );
+    archFrame.position.set(0, 0.22, -1.56);
+    stage.add(archFrame);
+
+    const innerArch = new THREE.Mesh(
+      new THREE.TorusGeometry(2.02, 0.014, 8, 96, Math.PI),
+      material(0xe4d2ad, 0.42, 0.48),
+    );
+    innerArch.position.set(0, 0.22, -1.53);
+    stage.add(innerArch);
+
+    [-2.18, 2.18].forEach((x) => {
+      mesh(stage, new THREE.BoxGeometry(0.13, 1.7, 0.15), productMats.gold, x, -0.63, -1.56);
+      mesh(stage, new THREE.BoxGeometry(0.22, 0.1, 0.23), productMats.gold, x, -1.52, -1.56);
+    });
 
     products.push(createDisplay(createTote, productMats.coral, -5.4, 0.1, 0, 0.5));
     products.push(createDisplay(createBottle, productMats.forest, -1.8, 0.46, -0.55, 1.4));
@@ -210,6 +241,8 @@ if (canvas && hero) {
       });
 
       stageRing.rotation.z = elapsed * 0.035;
+      archFrame.rotation.z = Math.sin(elapsed * 0.18) * 0.008;
+      innerArch.rotation.z = archFrame.rotation.z;
       renderer.render(scene, camera);
     }
 
