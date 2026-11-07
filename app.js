@@ -76,6 +76,10 @@ const refs = {
   categoryCount: document.getElementById("categoryCount"),
   inStockCount: document.getElementById("inStockCount"),
   toast: document.getElementById("toast"),
+  adminRevenue: document.getElementById("adminRevenue"),
+  adminOrderCount: document.getElementById("adminOrderCount"),
+  adminNewOrders: document.getElementById("adminNewOrders"),
+  adminStockCount: document.getElementById("adminStockCount"),
 };
 
 init();
@@ -382,6 +386,17 @@ function renderStats() {
   refs.featuredProducts.textContent = String(state.products.filter((product) => product.featured).length);
   refs.categoryCount.textContent = String(getCategories().length);
   refs.inStockCount.textContent = String(state.products.filter((product) => product.stock > 0).length);
+
+  if (refs.adminRevenue) {
+    const revenue = state.orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const newOrders = state.orders.filter((order) => order.status !== "completed").length;
+    const stockCount = state.products.reduce((sum, product) => sum + (Number(product.stock) || 0), 0);
+
+    refs.adminRevenue.textContent = formatPrice(revenue);
+    refs.adminOrderCount.textContent = String(state.orders.length);
+    refs.adminNewOrders.textContent = String(newOrders);
+    refs.adminStockCount.textContent = String(stockCount);
+  }
 }
 
 async function handleSubmit(event) {

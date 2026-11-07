@@ -10,7 +10,7 @@
   <div class="page-shell">
     <header class="topbar">
       <div class="brand-block">
-        <p class="eyebrow">Digital shop builder</p>
+        <p class="eyebrow">Өдөр тутмын хэрэгцээ</p>
         <a href="#shop" class="brand">Nomad Market</a>
       </div>
       <nav class="top-nav">
@@ -26,33 +26,20 @@
 
     <main>
       <section class="hero" id="shop">
+        <canvas class="hero-scene" id="showcaseScene" aria-hidden="true"></canvas>
         <div class="hero-copy reveal">
-          <p class="eyebrow">Өөрийн бараагаа өөрөө нийтэл</p>
-          <h1>Онлайн дэлгүүрээ хурдан эхлүүлэх бэлэн загвар</h1>
+          <p class="eyebrow">Nomad Market · Шинэ сонголт</p>
+          <h1>Өдөр тутмын сонголтоо нэг дороос</h1>
           <p class="hero-text">
-            Бараа нэмэх, зураг оруулах, үнэ засах, ангиллаар шүүх, сагсанд хийх бүх үндсэн боломжтой нэг нүүрэн дээр.
+            Хувцас, аксесуар, технологи, гоо сайхны бараагаа хайж, ангиллаар шүүж, сагсандаа нэмээрэй.
           </p>
           <div class="hero-actions">
-            <a class="primary-link" href="admin-login.html">Бараа нэмэх</a>
-            <a class="secondary-link" href="#catalog">Дэлгүүр харах</a>
-          </div>
-          <div class="hero-stats">
-            <article>
-              <strong id="totalProducts">0</strong>
-              <span>Нийт бараа</span>
-            </article>
-            <article>
-              <strong id="featuredProducts">0</strong>
-              <span>Онцлох бараа</span>
-            </article>
-            <article>
-              <strong>Local</strong>
-              <span>localStorage хадгалалт</span>
-            </article>
+            <a class="primary-link" href="#catalog">Бараа үзэх</a>
+            <a class="secondary-link" href="#featured">Онцлох бараа</a>
           </div>
         </div>
         <div class="hero-card reveal delay-1">
-          <p class="card-kicker">Shop pulse</p>
+          <p class="card-kicker">Дэлгүүрийн тойм</p>
           <div class="pulse-grid">
             <article>
               <span>Идэвхтэй ангилал</span>
@@ -67,17 +54,27 @@
               <strong id="inStockCount">0</strong>
             </article>
           </div>
+          <div class="hero-stats">
+            <article>
+              <strong id="totalProducts">0</strong>
+              <span>Бүх бараа</span>
+            </article>
+            <article>
+              <strong id="featuredProducts">0</strong>
+              <span>Онцлох бараа</span>
+            </article>
+          </div>
           <div class="mini-banner">
-            <p>Зураг upload хийж, JSON backup export/import хийх боломжтой.</p>
+            <p>Бүх барааны үнэ төгрөгөөр тооцогдоно.</p>
           </div>
         </div>
       </section>
 
-      <section class="featured-panel reveal delay-2">
+      <section class="featured-panel reveal delay-2" id="featured">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Онцлох</p>
-            <h2>Таны онцлох бараанууд</h2>
+            <p class="eyebrow">Сонгогдсон</p>
+            <h2>Онцлох бараа</h2>
           </div>
         </div>
         <div class="featured-strip" id="featuredStrip"></div>
@@ -86,8 +83,8 @@
       <section class="catalog-panel reveal" id="catalog">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Storefront</p>
-            <h2>Барааны хэсэг</h2>
+            <p class="eyebrow">Дэлгүүр</p>
+            <h2>Бүх бараа</h2>
           </div>
         </div>
 
@@ -133,6 +130,29 @@
               <input type="file" id="importInput" accept="application/json">
             </label>
           </div>
+        </div>
+
+        <div class="admin-stats" aria-label="Дэлгүүрийн статистик">
+          <article class="admin-stat">
+            <p>Нийт борлуулалт</p>
+            <strong id="adminRevenue">₮0</strong>
+            <span>Бүх захиалгын нийлбэр</span>
+          </article>
+          <article class="admin-stat">
+            <p>Нийт захиалга</p>
+            <strong id="adminOrderCount">0</strong>
+            <span>Бүртгэгдсэн захиалга</span>
+          </article>
+          <article class="admin-stat">
+            <p>Шинэ захиалга</p>
+            <strong id="adminNewOrders">0</strong>
+            <span>Шийдвэр хүлээж буй</span>
+          </article>
+          <article class="admin-stat">
+            <p>Барааны үлдэгдэл</p>
+            <strong id="adminStockCount">0</strong>
+            <span>Нийт ширхэг</span>
+          </article>
         </div>
 
         <div class="admin-grid">
@@ -265,5 +285,6 @@
   <div class="toast" id="toast"></div>
 
   <script src="app.js"></script>
+  <script type="module" src="/showcase.js"></script>
 </body>
 </html>

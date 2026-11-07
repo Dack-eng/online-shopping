@@ -1,0 +1,9 @@
+{
+  "name": "nomad-market",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nomad Market storefront",
+  "dependencies": {
+    "three": "0.180.0"
+  }
+}

@@ -20,6 +20,9 @@ const customerLoginAttempts = new Map();
 const publicFiles = new Map([
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/showcase.js", ["showcase.js", "text/javascript; charset=utf-8"]],
+  ["/vendor/three.module.js", ["node_modules/three/build/three.module.js", "text/javascript; charset=utf-8"]],
+  ["/vendor/three.core.js", ["node_modules/three/build/three.core.js", "text/javascript; charset=utf-8"]],
   ["/login.js", ["login.js", "text/javascript; charset=utf-8"]],
   ["/account.js", ["account.js", "text/javascript; charset=utf-8"]],
 ]);
